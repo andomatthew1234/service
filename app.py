@@ -6,46 +6,59 @@ import urllib3
 # Suppress the school's network SSL warning
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+# Track the last command we executed so we don't repeat it infinitely
+last_command = "none"
+
 def check_app_status():
-    # URL pointing to your new app_status.txt file
-    url = "https://raw.githubusercontent.com/andomatthew1234/service/main/app_status.txt"
+    global last_command # Allows us to update the variable outside this function
+    
+    base_url = "https://raw.githubusercontent.com/andomatthew1234/service/main/app_status.txt"
+    timestamp = int(time.time())
+    url = f"{base_url}?v={timestamp}"
     
     try:
-        # Fetch the content and clean it up
         response = requests.get(url, verify=False)
         response.raise_for_status()
         command = response.text.strip().lower()
         
+        # Scenario 1: The file says 'none'
         if command == "none":
             print("Status is 'none'. Waiting for a command...")
+            last_command = "none" # Reset tracking so it's ready for a new app
             return
             
-        # Dictionary mapping keywords in your text file to Windows system apps
-        # 'calc' is Calculator, 'notepad' is Notepad, 'mspaint' is MS Paint
+        # Scenario 2: It's the SAME command we just executed 5 seconds ago
+        if command == last_command:
+            print(f"Still reading '{command}', but we already handled it. Skipping to protect your RAM...")
+            return
+
         available_apps = {
             "calculator": "calc.exe",
             "notepad": "notepad.exe",
             "paint": "mspaint.exe"
         }
         
+        # Scenario 3: It's a BRAND NEW command
         if command in available_apps:
             app_to_run = available_apps[command]
-            print(f"Command received! Launching {command} ({app_to_run})...")
+            print(f"🔥 NEW COMMAND RECEIVED! Launching {command} ({app_to_run})...")
             
-            # Popen launches the app in the background so our script can keep running
             subprocess.Popen(app_to_run)
             
-            print("To prevent opening millions of windows, remember to change GitHub back to 'none'!")
+            # Save this command so we don't run it again on the next loop
+            last_command = command
+            print("Successfully launched. Ignoring further requests for this app until it changes.")
         else:
             print(f"Unknown command received: '{command}'. Try 'calculator', 'notepad', or 'paint'.")
+            # Update last_command so it doesn't spam the 'Unknown command' message either
+            last_command = command
             
     except requests.exceptions.RequestException as e:
         print(f"Error checking GitHub: {e}")
 
 if __name__ == "__main__":
-    print("Starting Remote App Launcher...")
+    print("Starting Smart Remote App Launcher (Anti-Spam Mode)...")
     
-    # Run a continuous loop so it checks every few seconds
     while True:
         check_app_status()
-        time.sleep(5)  # Waits 5 seconds before checking GitHub again
+        time.sleep(5)
