@@ -1,1 +1,1 @@
-false,%USERPROFILE%\AppData\Local\Thorium\Application\thorium.exe
+false,C:\Program Files\Microsoft Office\root\Office16\POWERPNT.EXE

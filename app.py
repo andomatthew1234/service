@@ -11,14 +11,12 @@ last_app_command = "none"
 
 def get_combined_commands():
     """Fetches your control file from GitHub Pages—completely immune to API limits."""
-    # Your custom live GitHub Pages URL
+    # Ensure this matches the EXACT capitalization of your file on GitHub!
     base_url = "https://andomatthew1234.github.io/service/control.txt"
     
-    # Simple cache-buster so your network doesn't serve an old copy
     url = f"{base_url}?v={int(time.time())}"
     
     try:
-        # Bypassing verification to navigate school firewalls cleanly
         response = requests.get(url, verify=False)
         response.raise_for_status()
         
@@ -31,7 +29,8 @@ def get_combined_commands():
             return "false", "none"
     except Exception as e:
         print(f"Connection delay or lookup error: {e}")
-        return None, None
+        # Return specific strings instead of None types to prevent script crashes
+        return "false", "error"
 
 if __name__ == "__main__":
     print("==================================================")
@@ -52,7 +51,7 @@ if __name__ == "__main__":
             break
             
         # 2. Variable-Mapped Application Deployment
-        if app_cmd and app_cmd.lower() != "none" and app_cmd != last_app_command:
+        if app_cmd and app_cmd.lower() != "none" and app_cmd.lower() != "error" and app_cmd != last_app_command:
             real_local_path = os.path.expandvars(app_cmd)
             print(f"🔥 Live change detected! Translated path: {real_local_path}")
             
@@ -67,9 +66,8 @@ if __name__ == "__main__":
                 
             last_app_command = app_cmd
             
-        elif app_cmd.lower() == "none":
+        elif app_cmd and app_cmd.lower() == "none":
             last_app_command = "none"
             
-        # Because GitHub Pages has no API caps, you can lower this to 5 or 10 seconds safely!
         print("Sleeping for 10 seconds before next sync loop...\n")
         time.sleep(10)
