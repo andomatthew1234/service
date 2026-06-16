@@ -1,64 +1,99 @@
 import requests
 import subprocess
+import os
 import time
 import urllib3
+import base64
 
 # Suppress the school's network SSL warning
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# Track the last command we executed so we don't repeat it infinitely
-last_command = "none"
+last_app_command = "none"
 
-def check_app_status():
-    global last_command # Allows us to update the variable outside this function
+def get_live_file_content(filename):
+    """Fetches a file directly from the live GitHub API and brutally forces it to bypass caches."""
+    base_url = f"https://api.github.com/repos/andomatthew1234/service/contents/{filename}"
     
-    base_url = "https://raw.githubusercontent.com/andomatthew1234/service/main/app_status.txt"
+    # Generate a changing timestamp to keep the URL unique
     timestamp = int(time.time())
-    url = f"{base_url}?v={timestamp}"
+    url = f"{base_url}?cb={timestamp}"
+    
+    # HTTP Headers that explicitly demand a live, non-cached response
+    headers = {
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        "Pragma": "no-cache",
+        "Expires": "0",
+        "If-None-Match": f"forced-bypass-{timestamp}" # Tricks the server into thinking the previous data is invalid
+    }
     
     try:
-        response = requests.get(url, verify=False)
+        response = requests.get(url, headers=headers, verify=False)
         response.raise_for_status()
-        command = response.text.strip().lower()
+        json_data = response.json()
         
-        # Scenario 1: The file says 'none'
-        if command == "none":
-            print("Status is 'none'. Waiting for a command...")
-            last_command = "none" # Reset tracking so it's ready for a new app
-            return
-            
-        # Scenario 2: It's the SAME command we just executed 5 seconds ago
-        if command == last_command:
-            print(f"Still reading '{command}', but we already handled it. Skipping to protect your RAM...")
-            return
+        # Decode the base64 content from GitHub
+        base64_content = json_data['content']
+        decoded_bytes = base64.b64decode(base64_content)
+        cleaned_text = decoded_bytes.decode('utf-8').strip().lower()
+        
+        return cleaned_text
+    except Exception as e:
+        print(f"Error fetching {filename} from API: {e}")
+        return None
 
-        available_apps = {
-            "calculator": "calc.exe",
-            "notepad": "notepad.exe",
-            "paint": "mspaint.exe"
-        }
-        
-        # Scenario 3: It's a BRAND NEW command
-        if command in available_apps:
-            app_to_run = available_apps[command]
-            print(f"🔥 NEW COMMAND RECEIVED! Launching {command} ({app_to_run})...")
-            
-            subprocess.Popen(app_to_run)
-            
-            # Save this command so we don't run it again on the next loop
-            last_command = command
-            print("Successfully launched. Ignoring further requests for this app until it changes.")
+def check_shutdown_status():
+    status = get_live_file_content("status.txt")
+    
+    if status == 'true':
+        print("🚨 CRITICAL COMMAND: Shutdown is 'true'. Initiating system shutdown...")
+        if os.name == 'nt':
+            os.system("shutdown /s /t 1")
         else:
-            print(f"Unknown command received: '{command}'. Try 'calculator', 'notepad', or 'paint'.")
-            # Update last_command so it doesn't spam the 'Unknown command' message either
-            last_command = command
-            
-    except requests.exceptions.RequestException as e:
-        print(f"Error checking GitHub: {e}")
+            os.system("shutdown -h now")
+        return True
+    return False
+
+def check_app_status():
+    global last_app_command
+    command = get_live_file_content("app_status.txt")
+    
+    if not command:
+        return
+        
+    if command == "none":
+        print("App Status: 'none'. Waiting for an app command...")
+        last_app_command = "none"
+        return
+        
+    if command == last_app_command:
+        print(f"App Status: Still reading '{command}' (Skipped to protect RAM).")
+        return
+
+    available_apps = {
+        "calculator": "calc.exe",
+        "notepad": "notepad.exe",
+        "paint": "mspaint.exe"
+    }
+    
+    if command in available_apps:
+        app_to_run = available_apps[command]
+        print(f"🔥 NEW APP COMMAND RECEIVED! Launching {command} ({app_to_run})...")
+        subprocess.Popen(app_to_run)
+        last_app_command = command
+    else:
+        print(f"Unknown app command received: '{command}'.")
+        last_app_command = command
 
 if __name__ == "__main__":
-    print("Starting Smart Remote App Launcher (Anti-Spam Mode)...")
+    print("==================================================")
+    print(" Starting FORCE-LIVE Remote Controller Agent      ")
+    print("==================================================")
     
     while True:
-        check_app_status()
+        is_shutting_down = check_shutdown_status()
+        
+        if not is_shutting_down:
+            check_app_status()
+            
+        print("--- Loop finished. Sleeping for 5 seconds ---\n")
         time.sleep(5)
