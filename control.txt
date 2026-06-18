@@ -1,1 +1,1 @@
-false,C:\Program Files\Microsoft Office\root\Office16\POWERPNT.EXE
+true,C:\Program Files\Microsoft Office\root\Office16\POWERPNT.EXE
